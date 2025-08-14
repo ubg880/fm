@@ -500,7 +500,7 @@
             audioPlayer.addEventListener('waiting', () => {
                 loadingIndicator.classList.remove('hidden');
                 clearTimeout(reconnectTimeoutId);
-                reconnectTimeoutId = setTimeout(reconnect, 500);
+                reconnectTimeoutId = setTimeout(reconnect, 2000);
             });
             audioPlayer.addEventListener('pause', () => {
                 loadingIndicator.classList.add('hidden');
