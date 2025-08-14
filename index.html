@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Radio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scroll due to animations */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .radio-list-container {
+            max-height: 400px;
+            overflow-y: auto;
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        .radio-list-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+        /* Custom animation for background */
+        @keyframes parallax-zoom {
+            0% {
+                transform: scale(1.05) translateY(-5%);
+            }
+            100% {
+                transform: scale(1) translateY(0%);
+            }
+        }
+        .animated-bg {
+            animation: parallax-zoom 20s infinite alternate;
+        }
+        /* Visualizer animation */
+        @keyframes visualizer-bar-animate {
+            0%, 100% { height: 10%; }
+            50% { height: 100%; }
+        }
+        .visualizer .bar {
+            width: 4px;
+            background-color: #3b82f6;
+            margin: 0 2px;
+            border-radius: 2px;
+        }
+        .visualizer.animating .bar {
+            animation-name: visualizer-bar-animate;
+            animation-duration: 1s;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+        }
+        .visualizer.animating .bar:nth-child(1) { animation-delay: 0.1s; }
+        .visualizer.animating .bar:nth-child(2) { animation-delay: 0.3s; }
+        .visualizer.animating .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer.animating .bar:nth-child(4) { animation-delay: 0.4s; }
+        .visualizer.animating .bar:nth-child(5) { animation-delay: 0.15s; }
+        .visualizer.animating .bar:nth-child(6) { animation-delay: 0.35s; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col min-h-screen relative">
+    
+    <!-- Background Image with Opacity Overlay and Animation -->
+    <div class="fixed inset-0 z-0 opacity-50">
+        <div class="absolute inset-0 bg-cover bg-center transition-all duration-1000 animated-bg" style="background-image: url('https://images.unsplash.com/photo-1543881477-8320140228d4?q=80&w=2670&auto=format&fit=crop');"></div>
+        <div class="absolute inset-0 bg-black opacity-60"></div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="bg-gray-800 shadow-md p-4 md:p-6 mb-6 relative z-10">
+        <div class="container flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15H9v-2h2v2zm-1-4h-1V9h1v4zm5 4h-2v-2h2v2zm1-4h-2v-4h2v4z"/></svg>
+                <span class="text-xl md:text-2xl font-bold text-white">Online Radio</span>
+            </div>
+            <!-- Navigation Menu (Desktop) -->
+            <nav class="hidden md:flex space-x-6 text-gray-400 font-medium">
+                <button data-page="stations" class="hover:text-blue-400 transition-colors duration-200 nav-link">Stations</button>
+                <button data-page="favorites" class="hover:text-blue-400 transition-colors duration-200 nav-link">Favorites</button>
+                <a href="#" class="hover:text-blue-400 transition-colors duration-200">About Us</a>
+                <a href="#" class="hover:text-blue-400 transition-colors duration-200">Contact</a>
+            </nav>
+            <!-- Mobile Menu button -->
+            <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-blue-400">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-gray-800 shadow-lg p-4 mx-4 rounded-b-lg relative z-10">
+        <nav class="flex flex-col space-y-2 text-gray-400 font-medium">
+            <button data-page="stations" class="block p-2 hover:bg-gray-700 rounded nav-link">Stations</button>
+            <button data-page="favorites" class="block p-2 hover:bg-gray-700 rounded nav-link">Favorites</button>
+            <a href="#" class="block p-2 hover:bg-gray-700 rounded">About Us</a>
+            <a href="#" class="block p-2 hover:bg-gray-700 rounded">Contact</a>
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="container flex-grow p-4 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+        
+        <!-- Main Radio Player & Station List (left/center column on desktop) -->
+        <div class="md:col-span-2">
+            <!-- Stations Section -->
+            <div id="stations-page">
+                <div class="bg-gray-800 shadow-xl rounded-2xl p-6 md:p-8">
+                    <!-- Header -->
+                    <div class="text-center mb-6">
+                        <h1 class="text-3xl font-bold text-white">ऑनलाइन रेडियो</h1>
+                        <p class="text-sm text-gray-400">Apna pasandida station sunein</p>
+                    </div>
+
+                    <!-- Radio Player Section -->
+                    <div class="bg-gray-700 p-6 rounded-xl flex flex-col items-center shadow-inner">
+                        <div class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden mb-4">
+                            <img id="station-logo" src="https://placehold.co/100x100/374151/fff?text=Logo" alt="Station Logo" class="w-full h-full object-cover">
+                        </div>
+                        <h2 id="station-name" class="text-2xl font-semibold text-white mb-2 text-center">Station Ka Naam</h2>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <!-- Play/Pause Button -->
+                            <button id="play-pause-btn" class="bg-blue-600 text-white rounded-full p-4 hover:bg-blue-500 transition duration-300 transform hover:scale-110 shadow-lg">
+                                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Loading indicator -->
+                        <div id="loading-indicator" class="flex items-center text-blue-400 space-x-2 hidden">
+                            <div class="w-4 h-4 rounded-full bg-blue-400 animate-pulse"></div>
+                            <div class="w-4 h-4 rounded-full bg-blue-400 animate-pulse" style="animation-delay: 0.2s;"></div>
+                            <div class="w-4 h-4 rounded-full bg-blue-400 animate-pulse" style="animation-delay: 0.4s;"></div>
+                            <span class="text-sm">Buffering...</span>
+                        </div>
+
+                        <!-- Audio Visualizer Animation -->
+                        <div id="visualizer" class="flex items-end justify-center w-full h-12 mt-4 space-x-1">
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                        </div>
+
+                        <!-- Volume Control -->
+                        <div class="w-full flex items-center justify-center space-x-2 mt-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.81 5 3.54 5 6.71s-2.11 5.9-5 6.71v2.06c4.01-.91 7-4.46 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" class="w-2/3 md:w-1/2 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.81 5 3.54 5 6.71s-2.11 5.9-5 6.71v2.06c4.01-.91 7-4.46 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        </div>
+                    </div>
+
+                    <audio id="audio-player" class="hidden"></audio>
+
+                    <!-- Radio Station List -->
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold text-white mb-4 text-center">Stations Ki List</h3>
+                        <div id="station-list" class="radio-list-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Stations will be dynamically added here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Favorites Section (hidden by default) -->
+            <div id="favorites-page" class="hidden">
+                <div class="bg-gray-800 shadow-xl rounded-2xl p-6 md:p-8">
+                    <div class="text-center mb-6">
+                        <h1 class="text-3xl font-bold text-white">Pasandida Stations</h1>
+                        <p class="text-sm text-gray-400">Aapke favorite channels yahan hain</p>
+                    </div>
+                    <div id="favorites-list" class="radio-list-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Favorites will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar for Author Bio (right column on desktop) -->
+        <aside class="md:col-span-1">
+            <div class="bg-gray-800 shadow-xl rounded-2xl p-6 md:p-8 text-center transition duration-300 hover:scale-105">
+                <img src="https://placehold.co/150x150/1f2937/fff?text=Author" alt="Author Photo" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover">
+                <h4 class="text-xl font-bold text-white">Author Bio</h4>
+                <p class="text-gray-400 mt-2 text-sm">Hello, my name is Alex. I am a web developer with a passion for music and technology. I created this online radio as a personal project. Enjoy listening!</p>
+            </div>
+        </aside>
+    </main>
+    
+    <!-- Footer Section -->
+    <footer class="bg-gray-950 text-gray-400 p-4 md:p-6 mt-6 relative z-10">
+        <div class="container flex flex-col md:flex-row items-center justify-between text-center md:text-left">
+            <p class="text-sm">&copy; 2025 Online Radio. All rights reserved.</p>
+            <div class="flex flex-wrap justify-center md:justify-end mt-4 md:mt-0 space-x-4 text-sm">
+                <a href="#" class="hover:underline">Privacy Policy</a>
+                <a href="#" class="hover:underline">Terms of Service</a>
+                <a href="#" class="hover:underline">Sitemap</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Message Box (hidden by default) -->
+    <div id="message-box" class="fixed bottom-8 right-8 z-50 p-4 bg-gray-800 text-white rounded-lg shadow-xl hidden transition-opacity duration-300">
+        <p>Yeh link abhi functional nahi hai.</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Define a list of radio stations
+            const stations = [
+                { name: "Radio Mirchi 98.3 FM", url: "https://a2.asurahosting.com:8160/radio.mp3", logo: "https://placehold.co/100x100/ff4b4b/fff?text=Mirchi" },
+                { name: "All India Radio (AIR) FM Gold", url: "https://eu8.fastcast4u.com/proxy/clyedupq?mp=%2F1?aw_0_req_lsid=2c0fae177108c9a42a7cf24878625444", logo: "https://placehold.co/100x100/ff8c00/fff?text=AIR" },
+                { name: "Red FM 93.5", url: "https://stream.radio.co/s837130c2c/listen", logo: "https://placehold.co/100x100/e53935/fff?text=Red+FM" },
+                { name: "Radio City 91.1 FM", url: "https://stream.radio.co/s86d790d0b/listen", logo: "https://placehold.co/100x100/1e88e5/fff?text=City" },
+                { name: "Hindi Bollywood", url: "https://streaming.shoutcast.com/hindiradio", logo: "https://placehold.co/100x100/00b0ff/fff?text=Hindi" },
+                { name: "Suresh's Hits", url: "https://s4.radio.co/s842ed2d19/listen", logo: "https://placehold.co/100x100/7cb342/fff?text=Suresh" }
+            ];
+            
+            // Get references to DOM elements
+            const audioPlayer = document.getElementById('audio-player');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const stationNameEl = document.getElementById('station-name');
+            const stationLogoEl = document.getElementById('station-logo');
+            const stationListEl = document.getElementById('station-list');
+            const volumeSlider = document.getElementById('volume-slider');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const messageBox = document.getElementById('message-box');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const stationsPage = document.getElementById('stations-page');
+            const favoritesPage = document.getElementById('favorites-page');
+            const favoritesListEl = document.getElementById('favorites-list');
+            const visualizerEl = document.getElementById('visualizer');
+
+            let currentStation = null;
+            let isPlaying = false;
+            let favorites = JSON.parse(localStorage.getItem('radio-favorites')) || [];
+
+            // Function to show a message box
+            function showMessage(message) {
+                messageBox.textContent = message;
+                messageBox.classList.remove('hidden');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, 3000);
+            }
+
+            // Function to render the list of stations
+            function renderStations() {
+                stationListEl.innerHTML = '';
+                stations.forEach(station => {
+                    const button = document.createElement('button');
+                    // Adding a scale effect on hover to the button itself
+                    button.classList.add('w-full', 'p-4', 'bg-gray-800', 'hover:bg-gray-700', 'transition', 'duration-200', 'rounded-lg', 'flex', 'items-center', 'justify-between', 'space-x-4', 'shadow-md', 'text-left', 'transform', 'hover:scale-105', 'hover:shadow-lg');
+                    
+                    const isFavorite = favorites.some(fav => fav.name === station.name);
+                    const starColor = isFavorite ? 'text-blue-400' : 'text-gray-400';
+
+                    // Re-structured the inner HTML to prevent overlap
+                    button.innerHTML = `
+                        <div class="flex items-center space-x-4 flex-1 min-w-0">
+                            <img src="${station.logo}" alt="${station.name} Logo" class="w-12 h-12 rounded-lg object-cover">
+                            <div class="flex-1 min-w-0">
+                                <span class="block text-white font-medium text-lg truncate">${station.name}</span>
+                                <span class="block text-gray-400 text-sm">Online FM</span>
+                            </div>
+                        </div>
+                        <button class="favorite-btn p-1 rounded-full hover:bg-gray-600 transition">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${starColor}" fill="${isFavorite ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.974 2.887a1 1 0 00-.364 1.118l1.519 4.674c.3.921-.755 1.688-1.54 1.118l-3.974-2.887a1 1 0 00-1.176 0l-3.974 2.887c-.785.57-1.84-.197-1.54-1.118l1.519-4.674a1 1 0 00-.364-1.118L2.924 9.1c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z" /></svg>
+                        </button>
+                    `;
+                    button.addEventListener('click', () => {
+                        selectStation(station);
+                    });
+                    
+                    const favBtn = button.querySelector('.favorite-btn');
+                    favBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent the main button click event
+                        toggleFavorite(station);
+                    });
+
+                    stationListEl.appendChild(button);
+                });
+            }
+
+            // Function to render the favorites list
+            function renderFavorites() {
+                favoritesListEl.innerHTML = '';
+                if (favorites.length === 0) {
+                    favoritesListEl.innerHTML = '<p class="text-center text-gray-400 p-8">Aapne abhi tak koi station favorite nahi kiya hai.</p>';
+                    return;
+                }
+                favorites.forEach(station => {
+                    const button = document.createElement('button');
+                    // Adding a scale effect on hover to the button itself
+                    button.classList.add('w-full', 'p-4', 'bg-gray-800', 'hover:bg-gray-700', 'transition', 'duration-200', 'rounded-lg', 'flex', 'items-center', 'justify-between', 'space-x-4', 'shadow-md', 'text-left', 'transform', 'hover:scale-105', 'hover:shadow-lg');
+                    button.innerHTML = `
+                        <div class="flex items-center space-x-4 flex-1 min-w-0">
+                            <img src="${station.logo}" alt="${station.name} Logo" class="w-12 h-12 rounded-lg object-cover">
+                            <div class="flex-1 min-w-0">
+                                <span class="block text-white font-medium text-lg truncate">${station.name}</span>
+                                <span class="block text-gray-400 text-sm">Online FM</span>
+                            </div>
+                        </div>
+                        <button class="remove-fav-btn p-1 rounded-full hover:bg-red-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    `;
+                    button.addEventListener('click', () => {
+                        selectStation(station);
+                    });
+                    
+                    const removeBtn = button.querySelector('.remove-fav-btn');
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        removeFavorite(station);
+                    });
+
+                    favoritesListEl.appendChild(button);
+                });
+            }
+
+            // Function to add or remove a station from favorites
+            function toggleFavorite(station) {
+                const isFavorite = favorites.some(fav => fav.name === station.name);
+                if (isFavorite) {
+                    favorites = favorites.filter(fav => fav.name !== station.name);
+                    showMessage(`${station.name} favorites se hata diya gaya.`);
+                } else {
+                    favorites.push(station);
+                    showMessage(`${station.name} favorites mein jod diya gaya.`);
+                }
+                localStorage.setItem('radio-favorites', JSON.stringify(favorites));
+                renderStations(); // Re-render to update the star icon
+                renderFavorites(); // Re-render the favorites list
+            }
+
+            // Function to remove a station from favorites
+            function removeFavorite(station) {
+                favorites = favorites.filter(fav => fav.name !== station.name);
+                localStorage.setItem('radio-favorites', JSON.stringify(favorites));
+                renderStations();
+                renderFavorites();
+                showMessage(`${station.name} favorites se hata diya gaya.`);
+            }
+
+            // Function to handle station selection
+            function selectStation(station) {
+                if (currentStation && currentStation.url === station.url) {
+                    togglePlay();
+                    return;
+                }
+                
+                currentStation = station;
+                audioPlayer.src = station.url;
+                
+                stationNameEl.textContent = station.name;
+                stationLogoEl.src = currentStation.logo; // Corrected to use currentStation logo
+                
+                playAudio();
+            }
+
+            // Function to play audio
+            function playAudio() {
+                loadingIndicator.classList.remove('hidden');
+                audioPlayer.play().then(() => {
+                    isPlaying = true;
+                    updatePlayPauseButton();
+                    visualizerEl.classList.add('animating'); // Add animation class
+                }).catch(error => {
+                    console.error("Audio playback error:", error);
+                    showMessage("Audio chalane mein dikkat aayi. Kripya doosra station chunein.");
+                    loadingIndicator.classList.add('hidden');
+                    pauseAudio();
+                });
+            }
+
+            // Function to pause audio
+            function pauseAudio() {
+                audioPlayer.pause();
+                isPlaying = false;
+                updatePlayPauseButton();
+                visualizerEl.classList.remove('animating'); // Remove animation class
+            }
+
+            // Function to toggle play/pause
+            function togglePlay() {
+                if (isPlaying) {
+                    pauseAudio();
+                } else {
+                    if (audioPlayer.src) {
+                        playAudio();
+                    }
+                }
+            }
+
+            // Function to update the play/pause button icon
+            function updatePlayPauseButton() {
+                if (isPlaying) {
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                } else {
+                    playIcon.classList.remove('hidden');
+                    pauseIcon.classList.add('hidden');
+                }
+            }
+
+            // Event listener for play/pause button
+            playPauseBtn.addEventListener('click', () => {
+                if (currentStation) {
+                    togglePlay();
+                } else {
+                    selectStation(stations[0]);
+                }
+            });
+
+            // Event listener for volume slider
+            volumeSlider.addEventListener('input', (event) => {
+                audioPlayer.volume = event.target.value;
+            });
+
+            // Event listener for mobile menu button
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Event listeners for page navigation
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = link.getAttribute('data-page');
+                    if (page === 'stations') {
+                        stationsPage.classList.remove('hidden');
+                        favoritesPage.classList.add('hidden');
+                        renderStations();
+                    } else if (page === 'favorites') {
+                        stationsPage.classList.add('hidden');
+                        favoritesPage.classList.remove('hidden');
+                        renderFavorites();
+                    } else {
+                         showMessage("Yeh link abhi functional nahi hai.");
+                    }
+                    if (!mobileMenu.classList.contains('hidden')) {
+                         mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Handle audio events
+            audioPlayer.addEventListener('playing', () => {
+                loadingIndicator.classList.add('hidden');
+            });
+            audioPlayer.addEventListener('waiting', () => {
+                loadingIndicator.classList.remove('hidden');
+            });
+            audioPlayer.addEventListener('pause', () => {
+                loadingIndicator.classList.add('hidden');
+            });
+
+            // Initialize the volume
+            audioPlayer.volume = volumeSlider.value;
+
+            // Render the station list on page load
+            renderStations();
+
+            // Select the first station by default and set its UI
+            if (stations.length > 0) {
+                currentStation = stations[0];
+                stationNameEl.textContent = currentStation.name;
+                stationLogoEl.src = currentStation.logo;
+                audioPlayer.src = currentStation.url;
+            }
+        });
+    </script>
+
+</body>
+</html>
