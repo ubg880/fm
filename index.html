@@ -482,7 +482,7 @@
                 loadingIndicator.classList.remove('hidden');
                 // Set a timeout to check if buffering is taking too long
                 clearTimeout(reconnectTimeoutId);
-                reconnectTimeoutId = setTimeout(reconnect, 10000); // 10 seconds timeout
+                reconnectTimeoutId = setTimeout(reconnect, 1000); // 1 seconds timeout
             });
             audioPlayer.addEventListener('pause', () => {
                 loadingIndicator.classList.add('hidden');
