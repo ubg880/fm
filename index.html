@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,6 +244,7 @@
             let currentStation = null;
             let isPlaying = false;
             let favorites = JSON.parse(localStorage.getItem('radio-favorites')) || [];
+            let reconnectTimeoutId = null;
 
             // Function to show a message box
             function showMessage(message) {
@@ -351,7 +353,21 @@
                 renderFavorites();
                 showMessage(`${station.name} favorites se hata diya gaya.`);
             }
-
+            
+            // Function to handle stream reconnection
+            function reconnect() {
+                if (currentStation) {
+                    console.log("Stream stalled. Attempting to reconnect...");
+                    showMessage("Reconnecting...");
+                    // Try to re-load the current audio source
+                    audioPlayer.load();
+                    audioPlayer.play().catch(e => {
+                        console.error("Reconnect failed: ", e);
+                        showMessage("Reconnect karne mein dikkat aayi.");
+                    });
+                }
+            }
+            
             // Function to handle station selection
             function selectStation(station) {
                 if (currentStation && currentStation.url === station.url) {
@@ -359,11 +375,14 @@
                     return;
                 }
                 
+                // If a new station is selected, clear any existing timeout
+                clearTimeout(reconnectTimeoutId);
+                
                 currentStation = station;
                 audioPlayer.src = station.url;
                 
                 stationNameEl.textContent = station.name;
-                stationLogoEl.src = currentStation.logo; // Corrected to use currentStation logo
+                stationLogoEl.src = currentStation.logo;
                 
                 playAudio();
             }
@@ -457,12 +476,22 @@
             // Handle audio events
             audioPlayer.addEventListener('playing', () => {
                 loadingIndicator.classList.add('hidden');
+                clearTimeout(reconnectTimeoutId); // Clear timeout on successful playback
             });
             audioPlayer.addEventListener('waiting', () => {
                 loadingIndicator.classList.remove('hidden');
+                // Set a timeout to check if buffering is taking too long
+                clearTimeout(reconnectTimeoutId);
+                reconnectTimeoutId = setTimeout(reconnect, 10000); // 10 seconds timeout
             });
             audioPlayer.addEventListener('pause', () => {
                 loadingIndicator.classList.add('hidden');
+                clearTimeout(reconnectTimeoutId);
+            });
+            audioPlayer.addEventListener('error', () => {
+                console.error("Audio error event fired.");
+                showMessage("Audio chalane mein ek error aaya. Dobara koshish kar rahe hain...");
+                reconnect();
             });
 
             // Initialize the volume
