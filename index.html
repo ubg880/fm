@@ -28,12 +28,8 @@
         }
         /* Custom animation for background */
         @keyframes parallax-zoom {
-            0% {
-                transform: scale(1.05) translateY(-5%);
-            }
-            100% {
-                transform: scale(1) translateY(0%);
-            }
+            0% { transform: scale(1.05) translateY(-5%); }
+            100% { transform: scale(1) translateY(0%); }
         }
         .animated-bg {
             animation: parallax-zoom 20s infinite alternate;
@@ -62,6 +58,8 @@
         .visualizer.animating .bar:nth-child(5) { animation-delay: 0.15s; }
         .visualizer.animating .bar:nth-child(6) { animation-delay: 0.35s; }
     </style>
+    <!-- PWA: Linking the manifest file for PWA features -->
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col min-h-screen relative">
     
@@ -80,16 +78,18 @@
                 <span class="text-xl md:text-2xl font-bold text-white">Online Radio</span>
             </div>
             <!-- Navigation Menu (Desktop) -->
-            <nav class="hidden md:flex space-x-6 text-gray-400 font-medium">
+            <nav class="hidden md:flex items-center space-x-6 text-gray-400 font-medium">
                 <button data-page="stations" class="hover:text-blue-400 transition-colors duration-200 nav-link">Stations</button>
                 <button data-page="favorites" class="hover:text-blue-400 transition-colors duration-200 nav-link">Favorites</button>
                 <a href="#" class="hover:text-blue-400 transition-colors duration-200">About Us</a>
                 <a href="#" class="hover:text-blue-400 transition-colors duration-200">Contact</a>
             </nav>
             <!-- Mobile Menu button -->
-            <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-blue-400">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
+            <div class="flex items-center space-x-4 md:hidden">
+                <button id="mobile-menu-btn" class="text-gray-400 hover:text-blue-400">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -210,6 +210,19 @@
         <p>Yeh link abhi functional nahi hai.</p>
     </div>
 
+    <!-- PWA: Registering the Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+            });
+        }
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Define a list of radio stations
@@ -260,13 +273,11 @@
                 stationListEl.innerHTML = '';
                 stations.forEach(station => {
                     const button = document.createElement('button');
-                    // Adding a scale effect on hover to the button itself
                     button.classList.add('w-full', 'p-4', 'bg-gray-800', 'hover:bg-gray-700', 'transition', 'duration-200', 'rounded-lg', 'flex', 'items-center', 'justify-between', 'space-x-4', 'shadow-md', 'text-left', 'transform', 'hover:scale-105', 'hover:shadow-lg');
                     
                     const isFavorite = favorites.some(fav => fav.name === station.name);
                     const starColor = isFavorite ? 'text-blue-400' : 'text-gray-400';
 
-                    // Re-structured the inner HTML to prevent overlap
                     button.innerHTML = `
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <img src="${station.logo}" alt="${station.name} Logo" class="w-12 h-12 rounded-lg object-cover">
@@ -302,7 +313,6 @@
                 }
                 favorites.forEach(station => {
                     const button = document.createElement('button');
-                    // Adding a scale effect on hover to the button itself
                     button.classList.add('w-full', 'p-4', 'bg-gray-800', 'hover:bg-gray-700', 'transition', 'duration-200', 'rounded-lg', 'flex', 'items-center', 'justify-between', 'space-x-4', 'shadow-md', 'text-left', 'transform', 'hover:scale-105', 'hover:shadow-lg');
                     button.innerHTML = `
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
@@ -359,7 +369,6 @@
                 if (currentStation) {
                     console.log("Stream stalled. Attempting to reconnect...");
                     showMessage("Reconnecting...");
-                    // Try to re-load the current audio source
                     audioPlayer.load();
                     audioPlayer.play().catch(e => {
                         console.error("Reconnect failed: ", e);
@@ -375,7 +384,6 @@
                     return;
                 }
                 
-                // If a new station is selected, clear any existing timeout
                 clearTimeout(reconnectTimeoutId);
                 
                 currentStation = station;
@@ -383,13 +391,24 @@
                 
                 stationNameEl.textContent = station.name;
                 stationLogoEl.src = currentStation.logo;
-                
-                playAudio();
+
+                // Stop the previous audio and loading state
+                pauseAudio();
+                loadingIndicator.classList.remove('hidden');
+
+                // Add a one-time event listener for 'canplay' event
+                const handleCanPlay = () => {
+                    playAudio();
+                    audioPlayer.removeEventListener('canplay', handleCanPlay);
+                };
+                audioPlayer.addEventListener('canplay', handleCanPlay);
+
+                audioPlayer.load(); // Load the new stream
             }
 
             // Function to play audio
             function playAudio() {
-                loadingIndicator.classList.remove('hidden');
+                // The canplay event listener already handles the logic before this function is called
                 audioPlayer.play().then(() => {
                     isPlaying = true;
                     updatePlayPauseButton();
@@ -416,7 +435,11 @@
                     pauseAudio();
                 } else {
                     if (audioPlayer.src) {
+                        // If paused and source is set, try to play again
                         playAudio();
+                    } else {
+                        // If no station is selected, play the first one
+                        selectStation(stations[0]);
                     }
                 }
             }
@@ -434,11 +457,7 @@
 
             // Event listener for play/pause button
             playPauseBtn.addEventListener('click', () => {
-                if (currentStation) {
-                    togglePlay();
-                } else {
-                    selectStation(stations[0]);
-                }
+                togglePlay();
             });
 
             // Event listener for volume slider
@@ -450,7 +469,7 @@
             mobileMenuBtn.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
             });
-
+            
             // Event listeners for page navigation
             navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -480,9 +499,8 @@
             });
             audioPlayer.addEventListener('waiting', () => {
                 loadingIndicator.classList.remove('hidden');
-                // Set a timeout to check if buffering is taking too long
                 clearTimeout(reconnectTimeoutId);
-                reconnectTimeoutId = setTimeout(reconnect, 4000); // 1 seconds timeout
+                reconnectTimeoutId = setTimeout(reconnect, 2000);
             });
             audioPlayer.addEventListener('pause', () => {
                 loadingIndicator.classList.add('hidden');
@@ -494,10 +512,8 @@
                 reconnect();
             });
 
-            // Initialize the volume
+            // Initialize the website
             audioPlayer.volume = volumeSlider.value;
-
-            // Render the station list on page load
             renderStations();
 
             // Select the first station by default and set its UI
